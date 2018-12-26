@@ -1,0 +1,41 @@
+pipeline {
+    agent any
+    //triggers {
+       // cron('H/15 * * * *')
+    //}
+	 tools { 
+        maven 'M3' 
+        jdk 'java' 
+    }
+    stages {
+        stage('Initialize') {
+            steps {
+                echo "Running ${env.BUILD_ID} on ${env.JENKINS_URL} : ${env.JOB_NAME}"
+				//def jsonObj = readJSON file: "${env.WORKSPACE}\${env.JOB_NAME}\jenkins.json"
+				//def config-name = jsonObj.jenkins.CONFIG[1].name
+				//echo config-name
+            }
+        }		
+		stage('Checkout') {
+            steps {
+                //checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/sasikumarduraisamy/myApp.git']]])
+				git url : 'https://github.com/sasikumarduraisamy/myApp.git'
+             }
+        }		
+		stage('Build') {	
+		    steps {			
+				sh 'mvn clean package'
+             }
+        }
+        stage('Build Environment & Deploy') {
+            steps {
+                //checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/sasikumarduraisamy/configs.git']]])
+                git url : 'https://github.com/sasikumarduraisamy/configs.git'               
+				sh 'cd ..;chmod -R 775 ${JOB_NAME}'
+                sh 'cd ..;scp -pr ${JOB_NAME} uname@host:/export/home/cog12853e/JenkinsSlave'				
+				sh 'ssh -t cog12853e@lad1labhc2288 "cd /export/home/cog12853e/JenkinsSlave/${JOB_NAME} ; ./buildTomcatServer.sh run ; bash"'
+            }
+        }		
+		
+    } 
+}
